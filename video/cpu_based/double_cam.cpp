@@ -34,7 +34,7 @@ int main() {
   cv::namedWindow("hud");
   cv::Mat frames[2];
   double offset = 0.15;
-  double limg, rimg, combined;
+  cube limg, rimg, combined;
 
   for (;;) {
     left.read(frames[0]);
@@ -51,8 +51,8 @@ int main() {
       limg = cvt_opencv2arma(frames[0]) / 255.0;
       rimg = cvt_opencv2arma(frames[1]) / 255.0;
 //    }
-    limt = limg(span(0, 480), span(128, 511), span::all);
-    rimg = rimg(span(0, 480), span(128, 511), span::all);
+    limg = limg(span(0, 479), span(128, 510), span::all);
+    rimg = rimg(span(0, 479), span(128, 510), span::all);
     combined = ovr_image(limg, rimg, offset); // waste copy
     disp_image("hud", combined);
     if (disp_keyPressed() >= 0) {
