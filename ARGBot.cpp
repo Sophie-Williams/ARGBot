@@ -1,21 +1,8 @@
-// #include <cstdio>
-// #include <cstdlib>
-// #include <cstring>
-// #include <ctime>
-// #include <cmath>
-// #include <unistd.h>
-// #include <sys/types.h>
 #include <dirent.h>
-#include <termios.h>
-// #include <assert.h>
-// #include <vector>
-// #include <iostream>
-#include "ARGBot.h"
 #include <pthread.h>
+#include <termios.h>
 
-// #include <cstdio>
-// #include <cstring>
-// #include <ctime>
+#include "ARGBot.h"
 
 #define WBUFSIZE 128
 #define DEV_BAUD  B57600
@@ -42,6 +29,7 @@ bool ARGBot::connect(void)
 		}
 	}
 	closedir(device_dir);
+
 	if (this->pports.size() == 0)
 	{
 		this->disconnect();
@@ -131,23 +119,21 @@ bool ARGBot::connect(void)
 
 static void *commHandler(void *args)
 {
-  ARGBot *bot = (ARGBot *)args;
+	ARGBot *bot = (ARGBot *)args;
 
-  while (!(bot->startStop))
-  {
-	vec tempSendVec;
-	pthread_mutex_lock(bot->commSendLock);
-	tempSendVec = bot->commSend;
-	pthread_mutex_unlock(bot->commSendLock);
-	bot->threadSend(tempSendVec);
+	while (!(bot->startStop))
+	{
+		vec tempSendVec;
+		pthread_mutex_lock(bot->commSendLock);
+		tempSendVec = bot->commSend;
+		pthread_mutex_unlock(bot->commSendLock);
+		bot->threadSend(tempSendVec);
 
-	vec tempRecvVec = bot->threadRecv();
-	pthread_mutex_lock(bot->commRecvLock);
-	bot->commRecv = tempRecvVec;
-	pthread_mutex_unlock(bot->commRecvLock);
-
+		vec tempRecvVec = bot->threadRecv();
+		pthread_mutex_lock(bot->commRecvLock);
+		bot->commRecv = tempRecvVec;
+		pthread_mutex_unlock(bot->commRecvLock);
 	}
-
   return NULL;
 }
 
@@ -180,7 +166,6 @@ void ARGBot::disconnect(void)
 		{
 			delete pport;
 		}
-
 		this->pports.clear();
 	}
 	this->robotid = 0;
@@ -188,12 +173,12 @@ void ARGBot::disconnect(void)
 
 ARGBot::ARGBot(void)
 {
-	this->prev_motion = zeros<vec>(5);
-	this->motion_const = ones<vec>(5) * 255.0;
+	this->prev_motion = zeros<vec>(12);
+	this->motion_const = ones<vec>(12) * 255.0;
 	if (this->connect())
 	{
 		this->reset();
-		this->send(zeros<vec>(5));
+		this->send(zeros<vec>(12));
 	}
 }
 
@@ -201,7 +186,7 @@ ARGBot::~ARGBot(void)
 {
 	if (this->connected())
 	{
-		this->send(zeros<vec>(5));
+		this->send(zeros<vec>(12));
 		this->reset();
 		this->disconnect();
 	}
@@ -229,17 +214,18 @@ void ARGBot::readClear()
   int devid;
 
   // Go through every device
-  for (size_t i = 0; i < this->connections.size(); i++) {
-    switch ((devid = this->ids[i])) {
-      case 1:
-      case 2:
-        serial_read(this->connections[i]); // just read everything, do nothing with it
-        break;
-      default:
-        break;
-    }
-  }
-
+	for (size_t i = 0; i < this->connections.size(); i++)
+	{
+		switch ((devid = this->ids[i]))
+		{
+			case 1:
+			case 2:
+				serial_read(this->connections[i]); // just read everything, do nothing with it
+				break;
+			default:
+				break;
+		}
+	}
 	return;
 }
 
@@ -262,6 +248,39 @@ void ARGBot::send(const vec &motion)
 	pthread_mutex_unlock(this->commSendLock);
 }
 
+// void ARGBot::drive(const vec &motion)
+// {
+// 	pthread_mutex_lock(this->commSendLock);
+// 	for (int i=0; i<4; i++)
+// 	{
+// 		this->commSend[i] = motion[i];
+// 	}
+// 	pthread_mutex_unlock(this->commSendLock);
+// 	return;
+// }
+
+// void ARGBot::shoot(const vec &motion)
+// {
+// 	pthread_mutex_lock(this->commSendLock);
+// 	for (int i=4; i<8; i++)
+// 	{
+// 		this->commSend[i] = motion[i];
+// 	}
+// 	pthread_mutex_unlock(this->commSendLock);
+// 	return;
+// }
+
+// void ARGBot::shoot(const vec &motion)
+// {
+// 	pthread_mutex_lock(this->commSendLock);
+// 	for (int i=4; i<8; i++)
+// 	{
+// 		this->commSend[i] = motion[i];
+// 	}
+// 	pthread_mutex_unlock(this->commSendLock);
+// 	return;
+// }
+
 void ARGBot::threadSend(const vec &motion)
 {
 	vec new_motion = motion;
@@ -279,20 +298,20 @@ void ARGBot::threadSend(const vec &motion)
 
 	new_motion %= motion_const;
 
+	usleep(50000);
+
 	char msg[WBUFSIZE];
 	for (int i = 0; i < (int)this->connections.size(); i++)
 	{
 		switch (this->ids[i])
 		{
-			case 1: // Drive base
-				// dont send dup speeds
+			case 1: // Arduino #2: Drive
 				if (new_motion(0) == this->prev_motion(0) &&
 						new_motion(1) == this->prev_motion(1) &&
 						new_motion(2) == this->prev_motion(2) &&
 						new_motion(3) == this->prev_motion(3))
 				{
-	//          if (new_motion(0) != 0 || new_motion(1) != 0 || new_motion(2) != 0 || new_motion(3) != 0)
-	//            break;
+					// DO NOTHING
 				}
 				else
 				{
@@ -309,11 +328,57 @@ void ARGBot::threadSend(const vec &motion)
 					serial_write(this->connections[i], msg);
 				}
 				break;
-			case 2: // Arduino #2
-				// new_motion(4) == this->prev_motion(4);
-				serial_write(this->connections[i], msg);
-				sprintf(msg, "[%d]\n", (int)new_motion(4));
-				serial_write(this->connections[i], msg);
+			case 2: // Arduino #2: Shooter
+				if (new_motion(4) == this->prev_motion(4) &&
+						new_motion(5) == this->prev_motion(5) &&
+						new_motion(6) == this->prev_motion(6) &&
+						new_motion(7) == this->prev_motion(7))
+				{
+					// DO NOTHING
+				}
+				else
+				{
+					this->prev_motion(4) = new_motion(4);
+					this->prev_motion(5) = new_motion(5);
+					this->prev_motion(6) = new_motion(6);
+					this->prev_motion(7) = new_motion(7);
+
+					sprintf(msg, "[%d %d %d %d]\n",
+							(int)new_motion(4),
+							(int)new_motion(5),
+							(int)new_motion(6),
+							(int)new_motion(7));
+					serial_write(this->connections[i], msg);
+				}
+				// serial_write(this->connections[i], msg);
+				// sprintf(msg, "[%d]\n", (int)new_motion(4));
+				// serial_write(this->connections[i], msg);
+				break;
+
+			case 3:
+				if (new_motion(8) == this->prev_motion(8) &&
+						new_motion(9) == this->prev_motion(9) &&
+						new_motion(10) == this->prev_motion(10) &&
+						new_motion(11) == this->prev_motion(11))
+				{
+					// DO NOTHING
+				}
+				else
+				{
+					this->prev_motion(8) = new_motion(8);
+					this->prev_motion(9) = new_motion(9);
+					this->prev_motion(10) = new_motion(10);
+					this->prev_motion(11) = new_motion(11);
+
+					sprintf(msg, "[%d %d %d %d]\n",
+							(int)new_motion(8),
+							(int)new_motion(9),
+							(int)new_motion(10),
+							(int)new_motion(11));
+					serial_write(this->connections[i], msg);
+				}
+				break;
+
 			default:
 				break;
 		}
@@ -322,17 +387,17 @@ void ARGBot::threadSend(const vec &motion)
 
 vec ARGBot::threadRecv(void)
 {
-	return zeros<vec>(5);
+	return zeros<vec>(12);
 }
 
 vec ARGBot::recv(void)
 {
   // add a lock to wait until the commthread is done setting the vector
-  vec tempVec;
-  pthread_mutex_lock(this->commRecvLock);
+	vec tempVec;
+	pthread_mutex_lock(this->commRecvLock);
 	tempVec = this->commRecv;
-  pthread_mutex_unlock(this->commRecvLock);
-  return tempVec;
+	pthread_mutex_unlock(this->commRecvLock);
+	return tempVec;
 }
 
 static double limitf(double x, double min, double max)

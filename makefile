@@ -6,12 +6,14 @@ CPPC = g++
 CPPFLAGS = -pedantic -Wall -std=c++11 -O3 -o
 COMPILECPP = $(CPPC) $(CPPFLAGS)
 LIBS = -larmadillo -lSDL -pthread
-
-OBJECTS = ARGBot.o serial.o ARGBotRunner.o
+OBJECTS = ARGBot.o serial.o ARGBotRunner.o xboxctrl.o
 
 all: $(OBJECTS) ARGBot
 
 serial.o: serial.c serial.h
+	$(COMPILEC) $@ -c $<
+
+xboxctrl.o: xboxctrl.c xboxctrl.h
 	$(COMPILEC) $@ -c $<
 
 ARGBot.o: ARGBot.cpp ARGBot.h
