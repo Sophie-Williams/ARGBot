@@ -10,7 +10,9 @@ class ARGBot
 		ARGBot(void);
 		~ARGBot(void);
 		int numconnected(void);
-		void send(const arma::vec &motion); // [topleft topright botleft botright arm]
+		void send(const arma::vec &motion); // []
+		// void drive(const arma::vec &motion); // []
+		// void shoot(const arma::vec &motion); // []
 		void readClear(void);
 		arma::vec recv(void);
 		void reset(void);
@@ -20,22 +22,20 @@ class ARGBot
 		void disconnect(void);
 
 		bool startStop;
-		// virtual void send(const arma::vec &motion);
-		// virtual arma::vec recv(void);
-		// virtual void reset(void);
 
 		arma::vec commSend;
 		arma::vec commRecv;
     	pthread_t *update_thread;
 		pthread_mutex_t *commSendLock;
 		pthread_mutex_t *commRecvLock;
-		void threadSend(const arma::vec &motion); // [topleft topright botleft botright arm]
+		void threadSend(const arma::vec &motion);
 		arma::vec threadRecv(void);
 
 	private:
-    // thread stuff for handling the communcation
+		// thread stuff for handling the communcation
 		arma::vec prev_motion;
 		arma::vec motion_const;
+		arma::vec motion_const_four;
 		int robotid;
 		std::vector<serial_t *> connections;
 		std::vector<int> ids;
