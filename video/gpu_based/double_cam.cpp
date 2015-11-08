@@ -3,8 +3,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include "ovr.h"
 
-//using namespace arma;
-
 // can be 30-45ish
 #define DCAMFPS 30
 
