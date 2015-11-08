@@ -7,6 +7,9 @@
 #include <termios.h>
 #include <unistd.h>
 #include <vector>
+#include <math.h>
+#include "SDL_mixer.h"
+
 
 #include "ARGBot.h"
 #include "SDL/SDL.h"
@@ -58,18 +61,28 @@ bool initSDL()
 	return true;
 }
 
-void drive(int frontRight, int backRight, int backLeft, int frontLeft)
+void drive(double backLeft, double frontLeft, double backRight, double frontRight)
 {
-	motion[0] = frontRight;
-	motion[1] = backRight;
-	motion[2] = backLeft;
-	motion[3] = frontLeft;
+	motion[0] = -backLeft;
+	motion[1] = -frontLeft;
+	motion[2] = -backRight;
+	motion[3] = -frontRight;
 }
 
-void shoot(int speed)
+void shoot(double speed)
 {
-	motion[4] = speed;
+	motion[4] = -speed;
 	motion[5] = speed;
+}
+
+void lift(double speed)
+{
+	motion[6] = speed;
+}
+
+void conveyor(double speed)
+{
+	motion[7] = -speed;
 }
 
 int main(int argc, char *argv[])
@@ -98,50 +111,46 @@ int main(int argc, char *argv[])
 		Uint8 *keystates = SDL_GetKeyState(NULL);
 		SDLMod SDL_GetModState(void);
 
-		// float oldValue = 0;
-		// float newValue = xBoxController.LJOY.y;
-		// if (oldValue != newValue)
-		// {
-			// printf("Left Joystick y-axis: %f\n", newValue);
-			// oldValue = newValue;
-			// bot.drive(vec{xBoxController.LJOY.y, newValue, 0, 0});
-		// }
+		double backLeft = 	xBoxController.LJOY.y - xBoxController.LJOY.x + xBoxController.RJOY.x;
+		double frontLeft = 	xBoxController.LJOY.y + xBoxController.LJOY.x + xBoxController.RJOY.x;
+		double backRight = 	xBoxController.LJOY.y + xBoxController.LJOY.x - xBoxController.RJOY.x;
+		double frontRight = xBoxController.LJOY.y - xBoxController.LJOY.x - xBoxController.RJOY.x;
 
-		if (keystates[SDLK_a])
-		{
-			drive(1, 1, 1, 1);
-		}
-		else
-		{
-			drive(0, 0, 0, 0);
-		}
+		float t = 0.25;
 
-		if (keystates[SDLK_l])
-		{
+		if ((backLeft < t) && (backLeft > -t))
+			backLeft = 0;
+		if ((frontLeft < t) && (frontLeft > -t))
+			frontLeft = 0;
+		if ((backRight < t) && (backRight > -t))
+			backRight = 0;
+		if ((frontRight < t) && (frontRight > -t))
+			frontRight = 0;
+
+		drive(backLeft, frontLeft, backRight, frontRight);
+
+		// printf("RT: %f\n", xBoxController.RT);
+
+		if (xBoxController.RB == 1)
 			shoot(1);
-		}
+		else if (xBoxController.RT > 0)
+			shoot(-1);
 		else
-		{
 			shoot(0);
-		}
 
-		// if (keystates[SDLK_w])
-		// {
-		// 	bot.drive(vec({-1, -1, -1, -1}));
-		// }
-		// else
-		// {
-		// 	bot.drive(vec({0, 0, 0, 0}));
-		// }
+		if (xBoxController.LB == 1)
+			conveyor(1);
+		else if (xBoxController.LT > 0)
+			conveyor(-1);
+		else
+			conveyor(0);
 
-		// if (keystates[SDLK_r])
-		// {
-		// 	bot.shoot(vec({1, 1, 0, 0}));
-		// }
-		// else
-		// {
-		// 	bot.shoot(vec({0, 0, 0, 0}));
-		// }
+		if (xBoxController.Y == 1)
+			lift(1);
+		else if (xBoxController.A == 1)
+			lift(-1);
+		else
+			lift(0);
 
 		if (keystates[SDLK_q] || (SDL_GetModState() & KMOD_CTRL && keystates[SDLK_c]))
 		{
@@ -152,8 +161,8 @@ int main(int argc, char *argv[])
 	bot.readClear();
 	}
 
-  pthread_join(xBoxControllerThread, NULL);
-  xboxctrl_disconnect(&xBoxController);
+	pthread_join(xBoxControllerThread, NULL);
+	xboxctrl_disconnect(&xBoxController);
 
 	SDL_Quit();
 	return 0;

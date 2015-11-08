@@ -219,8 +219,9 @@ void ARGBot::readClear()
 		switch ((devid = this->ids[i]))
 		{
 			case 1:
-			case 2:
+			case 2:	// Encoder from conveyor
 				serial_read(this->connections[i]); // just read everything, do nothing with it
+			case 3: // Potentiometers from LiftCamera
 				break;
 			default:
 				break;
@@ -298,7 +299,7 @@ void ARGBot::threadSend(const vec &motion)
 
 	new_motion %= motion_const;
 
-	usleep(50000);
+	usleep(20000);
 
 	char msg[WBUFSIZE];
 	for (int i = 0; i < (int)this->connections.size(); i++)

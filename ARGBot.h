@@ -35,7 +35,6 @@ class ARGBot
 		// thread stuff for handling the communcation
 		arma::vec prev_motion;
 		arma::vec motion_const;
-		arma::vec motion_const_four;
 		int robotid;
 		std::vector<serial_t *> connections;
 		std::vector<int> ids;

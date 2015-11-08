@@ -122,14 +122,15 @@ void loop()
 	}
 	setmotors(-prevv[0], -prevv[1], prevv[2], prevv[3]);
 
+	int horizontalPot = AnalogRead(A1);
+	int verticalPot = AnalogRead(A2);
+
 	if (millis() - msecs > 100)
 	{
-		sprintf(wbuf, "[%d %d %d %d %d]\n",
+		sprintf(wbuf, "[%d %d %d]\n",
 				DEV_ID,
-				prevv[0],
-				prevv[1],
-				prevv[2],
-				prevv[3]);
+				horizontalPot,
+				verticalPot);
 		Serial.print(wbuf);
 		msecs = millis();
 	}
